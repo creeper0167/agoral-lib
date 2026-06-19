@@ -1,0 +1,73 @@
+@import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --parchment: #F8F5F0;
+  --border: #E8DDD0;
+  --crimson: #C0392B;
+  --crimson-dark: #96281B;
+  --crimson-light: #F9EBEA;
+  --navy: #1A1A2E;
+  --navy-muted: #4A4A6A;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  direction: rtl;
+  font-family: "Vazir", sans-serif;
+}
+
+body {
+  background-color: #ffffff;
+  color: var(--navy);
+  font-family: "Vazir", sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--parchment); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #c8b8a8; }
+
+@layer components {
+  .btn-primary {
+    @apply bg-crimson text-white px-5 py-2.5 rounded-lg font-medium
+           hover:bg-crimson-dark transition-colors duration-200
+           focus:outline-none focus:ring-2 focus:ring-crimson focus:ring-offset-2;
+  }
+  .btn-secondary {
+    @apply bg-white text-navy border border-border px-5 py-2.5 rounded-lg font-medium
+           hover:bg-parchment transition-colors duration-200
+           focus:outline-none focus:ring-2 focus:ring-border focus:ring-offset-2;
+  }
+  .btn-ghost {
+    @apply text-navy-muted px-4 py-2 rounded-lg font-medium
+           hover:bg-parchment transition-colors duration-200;
+  }
+  .card {
+    @apply bg-white border border-border rounded-xl p-5 shadow-sm;
+  }
+  .input-field {
+    @apply w-full border border-border rounded-lg px-4 py-2.5 text-navy
+           bg-white placeholder-navy-muted/50
+           focus:outline-none focus:ring-2 focus:ring-crimson/30 focus:border-crimson
+           transition-colors duration-200;
+  }
+  .label {
+    @apply block text-sm font-medium text-navy mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .page-title {
+    @apply text-2xl font-bold text-navy;
+  }
+  .section-title {
+    @apply text-xl font-bold text-navy;
+  }
+}
