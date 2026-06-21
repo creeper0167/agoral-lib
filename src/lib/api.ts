@@ -1,20 +1,18 @@
 /**
- * API Service Layer
- * Base URL is read from NEXT_PUBLIC_API_URL environment variable.
- * All functions map to .NET Core endpoints.
+ * API Service Layer — all calls go to NEXT_PUBLIC_API_URL (your .NET Core backend)
  */
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
 
-// ─── Generic helpers ──────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("token");
+}
 
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getToken();
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
@@ -23,59 +21,57 @@ async function request<T>(
     },
     ...options,
   });
-
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(error.message ?? "خطا در ارتباط با سرور");
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message ?? "خطا در ارتباط با سرور");
   }
-
   return res.json() as Promise<T>;
 }
 
-const get = <T>(path: string) => request<T>(path);
-const post = <T>(path: string, body: unknown) =>
-  request<T>(path, { method: "POST", body: JSON.stringify(body) });
-const put = <T>(path: string, body: unknown) =>
-  request<T>(path, { method: "PUT", body: JSON.stringify(body) });
-const del = <T>(path: string) => request<T>(path, { method: "DELETE" });
+const get  = <T>(path: string)                    => request<T>(path);
+const post = <T>(path: string, body: unknown)     => request<T>(path, { method: "POST", body: JSON.stringify(body) });
+const put  = <T>(path: string, body: unknown)     => request<T>(path, { method: "PUT",  body: JSON.stringify(body) });
+const del  = <T>(path: string)                    => request<T>(path, { method: "DELETE" });
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
-export interface LoginPayload {
-  email: string;
-  password: string;
+/** Multipart upload — no Content-Type header so browser sets boundary */
+async function upload<T>(path: string, formData: FormData): Promise<T> {
+  const token = getToken();
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message ?? "خطا در آپلود فایل");
+  }
+  return res.json() as Promise<T>;
 }
 
-export interface RegisterPayload {
-  name: string;
-  email: string;
-  password: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface BookDto {
+  id: number;
+  title: string;
+  author: string;
+  category: string;
+  cover?: string;
+  description: string;
+  isbn: string;
+  publishYear: number;
+  totalCopies: number;
+  availableCopies: number;
+  available: boolean;
 }
 
-export interface AuthResponse {
-  token: string;
-  user: {
-    id: number;
-    name: string;
-    email: string;
-    role: "user" | "admin";
-  };
+export interface BooksPagedResponse {
+  items: BookDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
 }
 
-export const authApi = {
-  login: (data: LoginPayload) => post<AuthResponse>("/auth/login", data),
-  register: (data: RegisterPayload) =>
-    post<AuthResponse>("/auth/register", data),
-  forgotPassword: (email: string) =>
-    post<{ message: string }>("/auth/forgot-password", { email }),
-  resetPassword: (token: string, password: string) =>
-    post<{ message: string }>("/auth/reset-password", { token, password }),
-  me: () => get<AuthResponse["user"]>("/auth/me"),
-};
-
-// ─── Books ────────────────────────────────────────────────────────────────────
-
-export interface BookFilters {
+export interface BookQueryParams {
   query?: string;
   category?: string;
   available?: boolean;
@@ -83,74 +79,25 @@ export interface BookFilters {
   pageSize?: number;
 }
 
-export interface BooksResponse {
-  items: import("@/types").Book[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
+export interface CategoryDto {
+  id: number;
+  name: string;
+  slug: string;
+  count: number;
 }
 
-export const booksApi = {
-  getAll: (filters?: BookFilters) => {
-    const params = new URLSearchParams();
-    if (filters?.query) params.set("query", filters.query);
-    if (filters?.category) params.set("category", filters.category);
-    if (filters?.available !== undefined)
-      params.set("available", String(filters.available));
-    if (filters?.page) params.set("page", String(filters.page));
-    if (filters?.pageSize) params.set("pageSize", String(filters.pageSize));
-    const qs = params.toString();
-    return get<BooksResponse>(`/books${qs ? `?${qs}` : ""}`);
-  },
-
-  getById: (id: number) => get<import("@/types").Book>(`/books/${id}`),
-
-  create: (data: Omit<import("@/types").Book, "id">) =>
-    post<import("@/types").Book>("/books", data),
-
-  update: (id: number, data: Omit<import("@/types").Book, "id">) =>
-    put<import("@/types").Book>(`/books/${id}`, data),
-
-  delete: (id: number) => del<{ message: string }>(`/books/${id}`),
-};
-
-// ─── Reservations ─────────────────────────────────────────────────────────────
-
-export interface ReservationResponse {
+export interface ReservationDto {
   id: number;
   bookId: number;
   userId: number;
   status: "pending" | "active" | "returned" | "cancelled";
   reservedAt: string;
   dueDate: string;
-  book?: import("@/types").Book;
+  book?: BookDto;
   user?: { id: number; name: string; email: string };
 }
 
-export const reservationsApi = {
-  /** Current user's own reservations */
-  getMine: () => get<ReservationResponse[]>("/reservations/me"),
-
-  /** Admin: all reservations */
-  getAll: () => get<ReservationResponse[]>("/reservations"),
-
-  /** Reserve a book */
-  create: (bookId: number) =>
-    post<ReservationResponse>("/reservations", { bookId }),
-
-  /** Admin: change status (approve / mark returned / cancel) */
-  updateStatus: (id: number, status: ReservationResponse["status"]) =>
-    put<ReservationResponse>(`/reservations/${id}/status`, { status }),
-
-  cancel: (id: number) =>
-    put<ReservationResponse>(`/reservations/${id}/status`, {
-      status: "cancelled",
-    }),
-};
-
-// ─── Users (admin) ────────────────────────────────────────────────────────────
-
-export interface UserResponse {
+export interface UserResponseDto {
   id: number;
   name: string;
   email: string;
@@ -159,30 +106,89 @@ export interface UserResponse {
   reservationsCount: number;
 }
 
-export const usersApi = {
-  getAll: () => get<UserResponse[]>("/users"),
-  updateRole: (id: number, role: "user" | "admin") =>
-    put<UserResponse>(`/users/${id}/role`, { role }),
-  delete: (id: number) => del<{ message: string }>(`/users/${id}`),
-};
-
-// ─── Categories ───────────────────────────────────────────────────────────────
-
-export const categoriesApi = {
-  getAll: () => get<import("@/types").Category[]>("/categories"),
-};
-
-// ─── Dashboard stats (admin) ──────────────────────────────────────────────────
-
-export interface DashboardStats {
+export interface DashboardStatsDto {
   totalBooks: number;
   activeUsers: number;
   activeReservations: number;
   monthlyReservations: number;
-  lowStockBooks: import("@/types").Book[];
-  recentReservations: ReservationResponse[];
+  lowStockBooks: BookDto[];
+  recentReservations: ReservationDto[];
 }
 
+export interface AuthResponse {
+  token: string;
+  user: { id: number; name: string; email: string; role: "user" | "admin" };
+}
+
+// ─── Auth API ─────────────────────────────────────────────────────────────────
+
+export const authApi = {
+  login:           (data: { email: string; password: string })                             => post<AuthResponse>("/auth/login", data),
+  register:        (data: { name: string; email: string; password: string })               => post<AuthResponse>("/auth/register", data),
+  forgotPassword:  (email: string)                                                         => post<{ message: string }>("/auth/forgot-password", { email }),
+  resetPassword:   (token: string, password: string)                                       => post<{ message: string }>("/auth/reset-password", { token, password }),
+  me:              ()                                                                       => get<AuthResponse["user"]>("/auth/me"),
+};
+
+// ─── Books API ────────────────────────────────────────────────────────────────
+
+export const booksApi = {
+  getAll: (params?: BookQueryParams): Promise<BooksPagedResponse> => {
+    const qs = new URLSearchParams();
+    if (params?.query)                    qs.set("query",    params.query);
+    if (params?.category)                 qs.set("category", params.category);
+    if (params?.available !== undefined)  qs.set("available", String(params.available));
+    if (params?.page)                     qs.set("page",     String(params.page));
+    if (params?.pageSize)                 qs.set("pageSize", String(params.pageSize));
+    const s = qs.toString();
+    return get<BooksPagedResponse>(`/books${s ? `?${s}` : ""}`);
+  },
+
+  getById:      (id: number)                                               => get<BookDto>(`/books/${id}`),
+  create:       (data: Omit<BookDto, "id" | "available">)                  => post<BookDto>("/books", data),
+  update:       (id: number, data: Omit<BookDto, "id" | "available">)      => put<BookDto>(`/books/${id}`, data),
+  delete:       (id: number)                                               => del<{ message: string }>(`/books/${id}`),
+
+  /** Upload cover image. Returns updated BookDto with new cover URL. */
+  uploadCover: (id: number, file: File): Promise<BookDto> => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return upload<BookDto>(`/books/${id}/cover`, fd);
+  },
+
+  /** Resolve a cover URL — prepends the API base when it's a relative path */
+  coverUrl: (cover?: string): string | undefined => {
+    if (!cover) return undefined;
+    if (cover.startsWith("http")) return cover;
+    return `${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ?? "http://localhost:5000"}${cover}`;
+  },
+};
+
+// ─── Reservations API ─────────────────────────────────────────────────────────
+
+export const reservationsApi = {
+  getAll:        ()                                                      => get<ReservationDto[]>("/reservations"),
+  getMine:       ()                                                      => get<ReservationDto[]>("/reservations/me"),
+  create:        (bookId: number)                                        => post<ReservationDto>("/reservations", { bookId }),
+  updateStatus:  (id: number, status: ReservationDto["status"])          => put<ReservationDto>(`/reservations/${id}/status`, { status }),
+};
+
+// ─── Users API ────────────────────────────────────────────────────────────────
+
+export const usersApi = {
+  getAll:      ()                                        => get<UserResponseDto[]>("/users"),
+  updateRole:  (id: number, role: "user" | "admin")      => put<UserResponseDto>(`/users/${id}/role`, { role }),
+  delete:      (id: number)                              => del<{ message: string }>(`/users/${id}`),
+};
+
+// ─── Categories API ───────────────────────────────────────────────────────────
+
+export const categoriesApi = {
+  getAll: () => get<CategoryDto[]>("/categories"),
+};
+
+// ─── Admin API ────────────────────────────────────────────────────────────────
+
 export const adminApi = {
-  getDashboard: () => get<DashboardStats>("/admin/dashboard"),
+  getDashboard: () => get<DashboardStatsDto>("/admin/dashboard"),
 };

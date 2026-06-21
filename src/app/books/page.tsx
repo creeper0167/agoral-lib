@@ -1,23 +1,60 @@
 "use client";
 
-import { useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import PublicHeader from "@/components/layout/PublicHeader";
 import PublicFooter from "@/components/layout/PublicFooter";
 import BookCard from "@/components/public/BookCard";
-import { books, categories } from "@/lib/mock-data";
+import Pagination from "@/components/ui/Pagination";
+import { BookGridSkeleton, Skeleton } from "@/components/ui/Skeleton";
+import { booksApi, categoriesApi, BookDto, CategoryDto } from "@/lib/api";
+
+const PAGE_SIZE = 12;
 
 export default function BooksPage() {
-  const [query, setQuery] = useState("");
+  const [query,            setQuery]            = useState("");
+  const [debouncedQuery,   setDebouncedQuery]   = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [onlyAvailable,    setOnlyAvailable]    = useState(false);
+  const [page,             setPage]             = useState(1);
+  const [books,            setBooks]            = useState<BookDto[]>([]);
+  const [totalCount,       setTotalCount]       = useState(0);
+  const [categories,       setCategories]       = useState<CategoryDto[]>([]);
+  const [loading,          setLoading]          = useState(true);
+  const [catLoading,       setCatLoading]       = useState(true);
 
-  const filtered = books.filter((b) => {
-    const matchQuery = !query || b.title.includes(query) || b.author.includes(query);
-    const matchCat = !selectedCategory || b.category === selectedCategory;
-    const matchAvail = !onlyAvailable || b.available;
-    return matchQuery && matchCat && matchAvail;
-  });
+  useEffect(() => {
+    categoriesApi.getAll()
+      .then(setCategories)
+      .finally(() => setCatLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedQuery(query); setPage(1); }, 400);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const loadBooks = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await booksApi.getAll({
+        query:     debouncedQuery || undefined,
+        category:  selectedCategory || undefined,
+        available: onlyAvailable || undefined,
+        page,
+        pageSize:  PAGE_SIZE,
+      });
+      setBooks(res.items);
+      setTotalCount(res.totalCount);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, [debouncedQuery, selectedCategory, onlyAvailable, page]);
+
+  useEffect(() => { loadBooks(); }, [loadBooks]);
+
+  const totalPages  = Math.ceil(totalCount / PAGE_SIZE);
+  const hasFilters  = !!query || !!selectedCategory || onlyAvailable;
+  const clearAll    = () => { setQuery(""); setSelectedCategory(null); setOnlyAvailable(false); setPage(1); };
 
   return (
     <>
@@ -25,95 +62,85 @@ export default function BooksPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8">
           <h1 className="page-title mb-1">همه کتاب‌ها</h1>
-          <p className="text-navy-muted text-sm">{filtered.length} عنوان</p>
+          {loading ? <Skeleton className="h-4 w-24 mt-1" /> : <p className="text-navy-muted text-sm">{totalCount} عنوان</p>}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar filters */}
+          {/* Sidebar */}
           <aside className="w-full lg:w-56 shrink-0">
             <div className="card sticky top-20">
-              <div className="flex items-center gap-2 mb-4">
-                <SlidersHorizontal size={15} className="text-crimson" />
-                <span className="font-semibold text-navy text-sm">فیلترها</span>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal size={15} className="text-crimson" />
+                  <span className="font-semibold text-navy text-sm">فیلترها</span>
+                </div>
+                {hasFilters && (
+                  <button onClick={clearAll} className="text-xs text-crimson hover:underline flex items-center gap-0.5">
+                    <X size={12} /> پاک
+                  </button>
+                )}
               </div>
 
-              {/* Search */}
               <div className="mb-5">
                 <label className="label text-xs">جستجو</label>
                 <div className="flex items-center gap-2 border border-border rounded-lg px-3 py-2">
                   <Search size={13} className="text-navy-muted shrink-0" />
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                  <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}
                     placeholder="عنوان یا نویسنده..."
-                    className="bg-transparent text-xs text-navy placeholder-navy-muted/50 focus:outline-none w-full"
-                  />
+                    className="bg-transparent text-xs text-navy placeholder-navy-muted/50 focus:outline-none w-full" />
                 </div>
               </div>
 
-              {/* Categories */}
               <div className="mb-5">
                 <label className="label text-xs">دسته‌بندی</label>
-                <div className="space-y-1">
-                  <button
-                    onClick={() => setSelectedCategory(null)}
-                    className={`w-full text-right text-sm px-2 py-1.5 rounded-lg transition-colors ${!selectedCategory ? "bg-crimson-light text-crimson font-medium" : "text-navy-muted hover:bg-parchment"}`}
-                  >
-                    همه
-                  </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSelectedCategory(cat.name)}
-                      className={`w-full text-right text-sm px-2 py-1.5 rounded-lg transition-colors flex items-center justify-between ${selectedCategory === cat.name ? "bg-crimson-light text-crimson font-medium" : "text-navy-muted hover:bg-parchment"}`}
-                    >
-                      <span>{cat.name}</span>
-                      <span className="text-xs">{cat.count}</span>
+                {catLoading ? (
+                  <div className="space-y-2 mt-1">
+                    {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <button onClick={() => { setSelectedCategory(null); setPage(1); }}
+                      className={`w-full text-right text-sm px-2 py-1.5 rounded-lg transition-colors ${!selectedCategory ? "bg-crimson-light text-crimson font-medium" : "text-navy-muted hover:bg-parchment"}`}>
+                      همه
                     </button>
-                  ))}
-                </div>
+                    {categories.map((cat) => (
+                      <button key={cat.id} onClick={() => { setSelectedCategory(cat.name); setPage(1); }}
+                        className={`w-full text-right text-sm px-2 py-1.5 rounded-lg transition-colors flex items-center justify-between ${selectedCategory === cat.name ? "bg-crimson-light text-crimson font-medium" : "text-navy-muted hover:bg-parchment"}`}>
+                        <span>{cat.name}</span><span className="text-xs">{cat.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Availability */}
               <div>
                 <label className="label text-xs">وضعیت</label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="avail"
-                    checked={onlyAvailable}
-                    onChange={(e) => setOnlyAvailable(e.target.checked)}
-                    className="w-4 h-4 accent-crimson"
-                  />
+                  <input type="checkbox" id="avail" checked={onlyAvailable}
+                    onChange={(e) => { setOnlyAvailable(e.target.checked); setPage(1); }}
+                    className="w-4 h-4 accent-crimson" />
                   <label htmlFor="avail" className="text-sm text-navy cursor-pointer">فقط موجود</label>
                 </div>
               </div>
-
-              {/* Reset */}
-              {(query || selectedCategory || onlyAvailable) && (
-                <button
-                  onClick={() => { setQuery(""); setSelectedCategory(null); setOnlyAvailable(false); }}
-                  className="mt-5 w-full btn-ghost text-sm text-crimson hover:bg-crimson-light"
-                >
-                  پاک کردن فیلترها
-                </button>
-              )}
             </div>
           </aside>
 
           {/* Grid */}
           <div className="flex-1">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <BookGridSkeleton count={PAGE_SIZE} />
+            ) : books.length === 0 ? (
               <div className="text-center py-20">
-                <p className="text-navy-muted text-lg">کتابی با این مشخصات یافت نشد</p>
+                <p className="text-navy-muted text-lg font-medium">کتابی یافت نشد</p>
+                {hasFilters && <button onClick={clearAll} className="btn-primary mt-5 text-sm">پاک کردن فیلترها</button>}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {filtered.map((book) => (
-                  <BookCard key={book.id} book={book} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {books.map((book) => <BookCard key={book.id} book={book} />)}
+                </div>
+                <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+              </>
             )}
           </div>
         </div>
