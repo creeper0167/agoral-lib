@@ -40,10 +40,10 @@ export default function HomePage() {
       {/* Hero */}
       <section className="bg-gradient-to-b from-parchment to-white border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <span className="badge bg-crimson-light text-crimson mb-5 inline-flex">کتابخانه دیجیتال</span>
-          <h1 className="text-4xl sm:text-5xl font-bold text-navy mb-4 leading-tight">کتابخانه‌ای در دسترس شما</h1>
+          <span className="badge bg-crimson-light text-crimson mb-5 inline-flex">کتابخانه عمومی</span>
+          <h1 className="text-4xl sm:text-5xl font-bold text-navy mb-4 leading-tight">کتابخانه‌ی آگورا</h1>
           <p className="text-navy-muted text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-            جستجو کنید، رزرو کنید و لذت مطالعه را تجربه کنید.
+            جستجو کنید، رزرو کنید و لذت مطالعه را بچشید!
           </p>
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center gap-2 bg-white border-2 border-border rounded-xl px-4 py-3 shadow-sm focus-within:border-crimson transition-colors">
@@ -61,9 +61,9 @@ export default function HomePage() {
           </div>
           <div className="flex items-center justify-center gap-10 mt-12">
             {[
-              { icon: BookOpen, value: "۵۴۳+",   label: "عنوان کتاب" },
-              { icon: Users,    value: "۱٬۲۰۰+", label: "عضو فعال" },
-              { icon: Star,     value: "۹۸٪",    label: "رضایت کاربران" },
+              { icon: BookOpen, value: "۱۰۰+",   label: "عنوان کتاب" },
+              { icon: Users,    value: "۱۰+", label: "عضو فعال" },
+              //{ icon: Star,     value: "۹۸٪",    label: "رضایت کاربران" },
             ].map(({ icon: Icon, value, label }) => (
               <div key={label} className="text-center">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
