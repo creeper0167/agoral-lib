@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import PublicHeader from "@/components/layout/PublicHeader";
 import PublicFooter from "@/components/layout/PublicFooter";
@@ -14,7 +14,7 @@ const PAGE_SIZE = 12;
 export default function BooksPage() {
   const [query,            setQuery]            = useState("");
   const [debouncedQuery,   setDebouncedQuery]   = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [onlyAvailable,    setOnlyAvailable]    = useState(false);
   const [page,             setPage]             = useState(1);
   const [books,            setBooks]            = useState<BookDto[]>([]);
@@ -29,32 +29,39 @@ export default function BooksPage() {
       .finally(() => setCatLoading(false));
   }, []);
 
+  // Debounce query text
   useEffect(() => {
     const t = setTimeout(() => { setDebouncedQuery(query); setPage(1); }, 400);
     return () => clearTimeout(t);
   }, [query]);
 
-  const loadBooks = useCallback(async () => {
+  // Fetch books whenever any filter changes — all deps explicit, no useCallback closure
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    try {
-      const res = await booksApi.getAll({
-        query:     debouncedQuery || undefined,
-        category:  selectedCategory || undefined,
-        available: onlyAvailable || undefined,
-        page,
-        pageSize:  PAGE_SIZE,
-      });
-      setBooks(res.items);
-      setTotalCount(res.totalCount);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+
+    booksApi.getAll({
+      query:      debouncedQuery || undefined,
+      categoryId: selectedCategory ?? undefined,
+      available:  onlyAvailable || undefined,
+      page,
+      pageSize:   PAGE_SIZE,
+    })
+      .then((res) => {
+        if (!cancelled) {
+          setBooks(res.items);
+          setTotalCount(res.totalCount);
+        }
+      })
+      .catch(console.error)
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
   }, [debouncedQuery, selectedCategory, onlyAvailable, page]);
 
-  useEffect(() => { loadBooks(); }, [loadBooks]);
-
-  const totalPages  = Math.ceil(totalCount / PAGE_SIZE);
-  const hasFilters  = !!query || !!selectedCategory || onlyAvailable;
-  const clearAll    = () => { setQuery(""); setSelectedCategory(null); setOnlyAvailable(false); setPage(1); };
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const hasFilters = !!query || selectedCategory !== null || onlyAvailable;
+  const clearAll   = () => { setQuery(""); setSelectedCategory(null); setOnlyAvailable(false); setPage(1); };
 
   return (
     <>
@@ -81,16 +88,21 @@ export default function BooksPage() {
                 )}
               </div>
 
+              {/* Text search */}
               <div className="mb-5">
                 <label className="label text-xs">جستجو</label>
                 <div className="flex items-center gap-2 border border-border rounded-lg px-3 py-2">
                   <Search size={13} className="text-navy-muted shrink-0" />
-                  <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+                  <input
+                    type="text" value={query}
+                    onChange={(e) => setQuery(e.target.value)}
                     placeholder="عنوان یا نویسنده..."
-                    className="bg-transparent text-xs text-navy placeholder-navy-muted/50 focus:outline-none w-full" />
+                    className="bg-transparent text-xs text-navy placeholder-navy-muted/50 focus:outline-none w-full"
+                  />
                 </div>
               </div>
 
+              {/* Category filter — uses id */}
               <div className="mb-5">
                 <label className="label text-xs">دسته‌بندی</label>
                 {catLoading ? (
@@ -99,33 +111,44 @@ export default function BooksPage() {
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <button onClick={() => { setSelectedCategory(null); setPage(1); }}
-                      className={`w-full text-right text-sm px-2 py-1.5 rounded-lg transition-colors ${!selectedCategory ? "bg-crimson-light text-crimson font-medium" : "text-navy-muted hover:bg-parchment"}`}>
-                      همه
-                    </button>
+                    <button
+                      onClick={() => { setSelectedCategory(null); setPage(1); }}
+                      className={`w-full text-right text-sm px-2 py-1.5 rounded-lg transition-colors ${
+                        selectedCategory === null ? "bg-crimson-light text-crimson font-medium" : "text-navy-muted hover:bg-parchment"
+                      }`}
+                    >همه</button>
                     {categories.map((cat) => (
-                      <button key={cat.id} onClick={() => { setSelectedCategory(cat.name); setPage(1); }}
-                        className={`w-full text-right text-sm px-2 py-1.5 rounded-lg transition-colors flex items-center justify-between ${selectedCategory === cat.name ? "bg-crimson-light text-crimson font-medium" : "text-navy-muted hover:bg-parchment"}`}>
-                        <span>{cat.name}</span><span className="text-xs">{cat.count}</span>
+                      <button
+                        key={cat.id}
+                        onClick={() => { setSelectedCategory(cat.id); setPage(1); }}
+                        className={`w-full text-right text-sm px-2 py-1.5 rounded-lg transition-colors flex items-center justify-between ${
+                          selectedCategory === cat.id ? "bg-crimson-light text-crimson font-medium" : "text-navy-muted hover:bg-parchment"
+                        }`}
+                      >
+                        <span>{cat.name}</span>
+                        <span className="text-xs">{cat.count}</span>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
 
+              {/* Availability */}
               <div>
                 <label className="label text-xs">وضعیت</label>
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" id="avail" checked={onlyAvailable}
+                  <input
+                    type="checkbox" id="avail" checked={onlyAvailable}
                     onChange={(e) => { setOnlyAvailable(e.target.checked); setPage(1); }}
-                    className="w-4 h-4 accent-crimson" />
+                    className="w-4 h-4 accent-crimson"
+                  />
                   <label htmlFor="avail" className="text-sm text-navy cursor-pointer">فقط موجود</label>
                 </div>
               </div>
             </div>
           </aside>
 
-          {/* Grid */}
+          {/* Book grid */}
           <div className="flex-1">
             {loading ? (
               <BookGridSkeleton count={PAGE_SIZE} />

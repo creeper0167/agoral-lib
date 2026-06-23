@@ -19,7 +19,7 @@ const catColors = [
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryDto[]>([]);
-  const [selected,   setSelected]   = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [catBooks,   setCatBooks]   = useState<BookDto[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [catLoading, setCatLoading] = useState(false);
@@ -30,16 +30,23 @@ export default function CategoriesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSelect = async (name: string) => {
-    if (selected === name) { setSelected(null); setCatBooks([]); return; }
-    setSelected(name);
+  const handleSelect = async (cat: CategoryDto) => {
+    if (selectedId === cat.id) {
+      setSelectedId(null);
+      setCatBooks([]);
+      return;
+    }
+    setSelectedId(cat.id);
     setCatLoading(true);
     try {
-      const res = await booksApi.getAll({ category: name, pageSize: 20 });
+      // Send categoryId (FK int) — not category name string
+      const res = await booksApi.getAll({ categoryId: cat.id, pageSize: 20 });
       setCatBooks(res.items);
     } catch (e) { console.error(e); }
     finally { setCatLoading(false); }
   };
+
+  const selectedCat = categories.find(c => c.id === selectedId);
 
   return (
     <>
@@ -58,8 +65,13 @@ export default function CategoriesPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
             {categories.map((cat, i) => (
-              <button key={cat.id} onClick={() => handleSelect(cat.name)}
-                className={`card text-right hover:shadow-md transition-all border-2 ${selected === cat.name ? "border-crimson bg-crimson-light" : "border-border hover:border-crimson/30"}`}>
+              <button
+                key={cat.id}
+                onClick={() => handleSelect(cat)}
+                className={`card text-right hover:shadow-md transition-all border-2 ${
+                  selectedId === cat.id ? "border-crimson bg-crimson-light" : "border-border hover:border-crimson/30"
+                }`}
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className={`badge mb-3 ${catColors[i % catColors.length]} border`}>{cat.count} کتاب</div>
@@ -78,12 +90,14 @@ export default function CategoriesPage() {
         )}
 
         {/* Books for selected category */}
-        {selected && (
+        {selectedId !== null && (
           <section>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="section-title">{selected}</h2>
-              <button onClick={() => { setSelected(null); setCatBooks([]); }}
-                className="text-sm text-navy-muted hover:text-crimson">بستن</button>
+              <h2 className="section-title">{selectedCat?.name}</h2>
+              <button
+                onClick={() => { setSelectedId(null); setCatBooks([]); }}
+                className="text-sm text-navy-muted hover:text-crimson"
+              >بستن</button>
             </div>
             {catLoading ? (
               <BookGridSkeleton count={8} />

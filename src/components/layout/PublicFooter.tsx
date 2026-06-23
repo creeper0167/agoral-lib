@@ -12,10 +12,10 @@ export default function PublicFooter() {
               <div className="w-9 h-9 bg-crimson rounded-lg flex items-center justify-center">
                 <BookOpen size={20} className="text-white" />
               </div>
-              <span className="text-lg font-bold">کتابخانه عمومی آگورا</span>
+              <span className="text-lg font-bold">کتابخانه دیجیتال</span>
             </div>
             <p className="text-white/60 text-sm leading-relaxed">
-              کتابخانه‌ای شخصی که در دسترس عموم قرار گرفته است.
+              کتابخانه‌ای نوین برای جستجو، مطالعه و رزرو کتاب‌های مختلف در تمام دسته‌بندی‌ها.
             </p>
           </div>
 
@@ -28,6 +28,7 @@ export default function PublicFooter() {
                 { label: "همه کتاب‌ها", href: "/books" },
                 { label: "دسته‌بندی‌ها", href: "/categories" },
                 { label: "ورود / ثبت‌نام", href: "/auth/login" },
+                { label: "قوانین و مقررات", href: "/terms" },
               ].map((item) => (
                 <li key={item.href}>
                   <Link
@@ -47,15 +48,15 @@ export default function PublicFooter() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2.5 text-white/60 text-sm">
                 <Phone size={15} className="text-crimson shrink-0" />
-                09355146278
+                ۰۲۱-۱۲۳۴۵۶۷۸
               </li>
               <li className="flex items-center gap-2.5 text-white/60 text-sm">
                 <Mail size={15} className="text-crimson shrink-0" />
-                m.amin.arjang@gmail.com
+                info@library.ir
               </li>
               <li className="flex items-center gap-2.5 text-white/60 text-sm">
                 <MapPin size={15} className="text-crimson shrink-0" />
-               هرمزگان، بندرعباس، بلوار امام حسین، کوی نیایش
+                تهران، خیابان ولیعصر
               </li>
             </ul>
           </div>

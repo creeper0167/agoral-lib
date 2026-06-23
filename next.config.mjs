@@ -2,18 +2,10 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "5000",
-        pathname: "/uploads/**",
-      },
-      {
-        // Production — replace with your actual domain
-        protocol: "https",
-        hostname: "yourdomain.com",
-        pathname: "/uploads/**",
-      },
+      // Local dev
+      { protocol: "http",  hostname: "localhost", port: "5000", pathname: "/uploads/**" },
+      // Production backend
+      { protocol: "https", hostname: "lib.fanavaranpars.com", pathname: "/uploads/**" },
     ],
   },
 };

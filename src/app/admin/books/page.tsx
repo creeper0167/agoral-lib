@@ -4,18 +4,18 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, Search, Pencil, Trash2, BookOpen, X, Check, Loader2, Upload, ImageIcon } from "lucide-react";
 import { AdminTableSkeleton } from "@/components/ui/Skeleton";
 import AdminHeader from "@/components/layout/AdminHeader";
-import { booksApi, categoriesApi, BookDto, CategoryDto } from "@/lib/api";
+import { booksApi, categoriesApi, BookDto, BookCreatePayload, CategoryDto } from "@/lib/api";
 
 type BookForm = {
-  title: string; author: string; category: string; isbn: string;
+  title: string; author: string; categoryId: number; isbn: string;
   publishYear: number; totalCopies: number; availableCopies: number;
-  description: string; available: boolean;
+  description: string;
 };
 
 const emptyForm: BookForm = {
-  title: "", author: "", category: "", isbn: "",
+  title: "", author: "", categoryId: 0, isbn: "",
   publishYear: 1400, totalCopies: 1, availableCopies: 1,
-  description: "", available: true,
+  description: "",
 };
 
 export default function AdminBooksPage() {
@@ -60,9 +60,9 @@ export default function AdminBooksPage() {
 
   const openEdit = (book: BookDto) => {
     setEditingBook(book);
-    setForm({ title: book.title, author: book.author, category: book.category, isbn: book.isbn,
+    setForm({ title: book.title, author: book.author, categoryId: book.categoryId, isbn: book.isbn,
       publishYear: book.publishYear, totalCopies: book.totalCopies, availableCopies: book.availableCopies,
-      description: book.description, available: book.available });
+      description: book.description });
     setCoverFile(null);
     setCoverPreview(booksApi.coverUrl(book.cover) ?? null);
     setShowModal(true);
@@ -79,10 +79,20 @@ export default function AdminBooksPage() {
     setSaving(true);
     try {
       let saved: BookDto;
+      const payload: BookCreatePayload = {
+        title:           form.title,
+        author:          form.author,
+        categoryId:      form.categoryId,
+        description:     form.description,
+        isbn:            form.isbn,
+        publishYear:     form.publishYear,
+        totalCopies:     form.totalCopies,
+        availableCopies: form.availableCopies,
+      };
       if (editingBook) {
-        saved = await booksApi.update(editingBook.id, form);
+        saved = await booksApi.update(editingBook.id, payload);
       } else {
-        saved = await booksApi.create(form);
+        saved = await booksApi.create(payload);
       }
       // Upload cover if chosen
       if (coverFile) {
@@ -202,7 +212,6 @@ export default function AdminBooksPage() {
             </table>
           </div>
         </div>
-
       )}
       </main>
 
@@ -251,11 +260,11 @@ export default function AdminBooksPage() {
                 <label className="label">دسته‌بندی</label>
                 <select
                   className="input-field"
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  value={form.categoryId || ""}
+                  onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}
                 >
                   <option value="">انتخاب دسته‌بندی</option>
-                  {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
 
@@ -273,11 +282,8 @@ export default function AdminBooksPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="avail" checked={form.available}
-                  onChange={(e) => setForm({ ...form, available: e.target.checked })}
-                  className="w-4 h-4 accent-crimson" />
-                <label htmlFor="avail" className="text-sm text-navy cursor-pointer">کتاب موجود است</label>
+              <div className="bg-parchment rounded-lg px-3 py-2 text-xs text-navy-muted">
+                وضعیت موجودی بر اساس «نسخه‌های موجود» محاسبه می‌شود
               </div>
             </div>
             <div className="flex items-center gap-3 p-5 border-t border-border sticky bottom-0 bg-white">

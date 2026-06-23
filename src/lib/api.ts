@@ -28,10 +28,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-const get  = <T>(path: string)                    => request<T>(path);
-const post = <T>(path: string, body: unknown)     => request<T>(path, { method: "POST", body: JSON.stringify(body) });
-const put  = <T>(path: string, body: unknown)     => request<T>(path, { method: "PUT",  body: JSON.stringify(body) });
-const del  = <T>(path: string)                    => request<T>(path, { method: "DELETE" });
+const get = <T>(path: string) => request<T>(path);
+const post = <T>(path: string, body: unknown) =>
+  request<T>(path, { method: "POST", body: JSON.stringify(body) });
+const put = <T>(path: string, body: unknown) =>
+  request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+const del = <T>(path: string) => request<T>(path, { method: "DELETE" });
 
 /** Multipart upload — no Content-Type header so browser sets boundary */
 async function upload<T>(path: string, formData: FormData): Promise<T> {
@@ -54,7 +56,8 @@ export interface BookDto {
   id: number;
   title: string;
   author: string;
-  category: string;
+  categoryId: number; // FK id
+  category: string; // Category.Name — for display
   cover?: string;
   description: string;
   isbn: string;
@@ -71,9 +74,24 @@ export interface BooksPagedResponse {
   pageSize: number;
 }
 
+// Payload types that match backend CreateBookRequest / UpdateBookRequest
+export interface BookCreatePayload {
+  title: string;
+  author: string;
+  categoryId: number; // FK — what the backend expects
+  cover?: string;
+  description: string;
+  isbn: string;
+  publishYear: number;
+  totalCopies: number;
+  availableCopies: number;
+}
+
+export type BookUpdatePayload = BookCreatePayload;
+
 export interface BookQueryParams {
   query?: string;
-  category?: string;
+  categoryId?: number; // filter by FK id
   available?: boolean;
   page?: number;
   pageSize?: number;
@@ -123,11 +141,15 @@ export interface AuthResponse {
 // ─── Auth API ─────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login:           (data: { email: string; password: string })                             => post<AuthResponse>("/auth/login", data),
-  register:        (data: { name: string; email: string; password: string })               => post<AuthResponse>("/auth/register", data),
-  forgotPassword:  (email: string)                                                         => post<{ message: string }>("/auth/forgot-password", { email }),
-  resetPassword:   (token: string, password: string)                                       => post<{ message: string }>("/auth/reset-password", { token, password }),
-  me:              ()                                                                       => get<AuthResponse["user"]>("/auth/me"),
+  login: (data: { email: string; password: string }) =>
+    post<AuthResponse>("/auth/login", data),
+  register: (data: { name: string; email: string; password: string }) =>
+    post<AuthResponse>("/auth/register", data),
+  forgotPassword: (email: string) =>
+    post<{ message: string }>("/auth/forgot-password", { email }),
+  resetPassword: (token: string, password: string) =>
+    post<{ message: string }>("/auth/reset-password", { token, password }),
+  me: () => get<AuthResponse["user"]>("/auth/me"),
 };
 
 // ─── Books API ────────────────────────────────────────────────────────────────
@@ -135,19 +157,22 @@ export const authApi = {
 export const booksApi = {
   getAll: (params?: BookQueryParams): Promise<BooksPagedResponse> => {
     const qs = new URLSearchParams();
-    if (params?.query)                    qs.set("query",    params.query);
-    if (params?.category)                 qs.set("category", params.category);
-    if (params?.available !== undefined)  qs.set("available", String(params.available));
-    if (params?.page)                     qs.set("page",     String(params.page));
-    if (params?.pageSize)                 qs.set("pageSize", String(params.pageSize));
+    if (params?.query) qs.set("query", params.query);
+    if (params?.categoryId !== undefined)
+      qs.set("categoryId", String(params.categoryId));
+    if (params?.available !== undefined)
+      qs.set("available", String(params.available));
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.pageSize) qs.set("pageSize", String(params.pageSize));
     const s = qs.toString();
     return get<BooksPagedResponse>(`/books${s ? `?${s}` : ""}`);
   },
 
-  getById:      (id: number)                                               => get<BookDto>(`/books/${id}`),
-  create:       (data: Omit<BookDto, "id" | "available">)                  => post<BookDto>("/books", data),
-  update:       (id: number, data: Omit<BookDto, "id" | "available">)      => put<BookDto>(`/books/${id}`, data),
-  delete:       (id: number)                                               => del<{ message: string }>(`/books/${id}`),
+  getById: (id: number) => get<BookDto>(`/books/${id}`),
+  create: (data: BookCreatePayload) => post<BookDto>("/books", data),
+  update: (id: number, data: BookUpdatePayload) =>
+    put<BookDto>(`/books/${id}`, data),
+  delete: (id: number) => del<{ message: string }>(`/books/${id}`),
 
   /** Upload cover image. Returns updated BookDto with new cover URL. */
   uploadCover: (id: number, file: File): Promise<BookDto> => {
@@ -156,29 +181,39 @@ export const booksApi = {
     return upload<BookDto>(`/books/${id}/cover`, fd);
   },
 
-  /** Resolve a cover URL — prepends the API base when it's a relative path */
+  /** Resolve a cover URL — prepends the static-files base when it's a relative path.
+   *  NEXT_PUBLIC_API_URL = https://lib.fanavaranpars.com/api
+   *  static base          = https://lib.fanavaranpars.com
+   */
   coverUrl: (cover?: string): string | undefined => {
     if (!cover) return undefined;
     if (cover.startsWith("http")) return cover;
-    return `${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ?? "http://localhost:5000"}${cover}`;
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+    const staticBase = apiUrl.endsWith("/api")
+      ? apiUrl.slice(0, -4) // strip trailing /api
+      : apiUrl.replace(/\/api$/, ""); // safe fallback
+    return `${staticBase}${cover}`;
   },
 };
 
 // ─── Reservations API ─────────────────────────────────────────────────────────
 
 export const reservationsApi = {
-  getAll:        ()                                                      => get<ReservationDto[]>("/reservations"),
-  getMine:       ()                                                      => get<ReservationDto[]>("/reservations/me"),
-  create:        (bookId: number)                                        => post<ReservationDto>("/reservations", { bookId }),
-  updateStatus:  (id: number, status: ReservationDto["status"])          => put<ReservationDto>(`/reservations/${id}/status`, { status }),
+  getAll: () => get<ReservationDto[]>("/reservations"),
+  getMine: () => get<ReservationDto[]>("/reservations/me"),
+  create: (bookId: number) => post<ReservationDto>("/reservations", { bookId }),
+  updateStatus: (id: number, status: ReservationDto["status"]) =>
+    put<ReservationDto>(`/reservations/${id}/status`, { status }),
 };
 
 // ─── Users API ────────────────────────────────────────────────────────────────
 
 export const usersApi = {
-  getAll:      ()                                        => get<UserResponseDto[]>("/users"),
-  updateRole:  (id: number, role: "user" | "admin")      => put<UserResponseDto>(`/users/${id}/role`, { role }),
-  delete:      (id: number)                              => del<{ message: string }>(`/users/${id}`),
+  getAll: () => get<UserResponseDto[]>("/users"),
+  updateRole: (id: number, role: "user" | "admin") =>
+    put<UserResponseDto>(`/users/${id}/role`, { role }),
+  delete: (id: number) => del<{ message: string }>(`/users/${id}`),
 };
 
 // ─── Categories API ───────────────────────────────────────────────────────────
