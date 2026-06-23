@@ -48,22 +48,22 @@ export default function PublicFooter() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2.5 text-white/60 text-sm">
                 <Phone size={15} className="text-crimson shrink-0" />
-                ۰۲۱-۱۲۳۴۵۶۷۸
+                09355146278
               </li>
               <li className="flex items-center gap-2.5 text-white/60 text-sm">
                 <Mail size={15} className="text-crimson shrink-0" />
-                info@library.ir
+                m.amin.arjang@gmail.com
               </li>
               <li className="flex items-center gap-2.5 text-white/60 text-sm">
                 <MapPin size={15} className="text-crimson shrink-0" />
-                تهران، خیابان ولیعصر
+                بلوار امام حسین، کوی نیایش، خیابان لاوان
               </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-white/10 mt-10 pt-6 text-center text-white/40 text-xs">
-          © ۱۴۰۳ کتابخانه دیجیتال — تمامی حقوق محفوظ است
+          © ۱۴۰۳ کتابخانه عمومی آگورا — تمامی حقوق محفوظ است
         </div>
       </div>
     </footer>
