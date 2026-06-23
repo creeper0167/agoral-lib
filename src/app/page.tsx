@@ -55,7 +55,7 @@ export default function HomePage() {
       <section className="bg-gradient-to-b from-parchment to-white border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <span className="badge bg-crimson-light text-crimson mb-5 inline-flex">کتابخانه عمومی</span>
-          <h1 className="text-4xl sm:text-5xl font-bold text-navy mb-4 leading-tight">کتابخانه‌ی آکورا</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold text-navy mb-4 leading-tight">کتابخانه‌ی آگورا</h1>
           <p className="text-navy-muted text-lg mb-10 max-w-xl mx-auto leading-relaxed">
             جستجو کنید، رزرو کنید و لذت مطالعه را بچشید.
           </p>
