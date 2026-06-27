@@ -12,7 +12,7 @@ export default function PublicFooter() {
               <div className="w-9 h-9 bg-crimson rounded-lg flex items-center justify-center">
                 <BookOpen size={20} className="text-white" />
               </div>
-              <span className="text-lg font-bold">کتابخانه دیجیتال</span>
+              <span className="text-lg font-bold">کتابخانه آگورا</span>
             </div>
             <p className="text-white/60 text-sm leading-relaxed">
               کتابخانه‌ای نوین برای جستجو، مطالعه و رزرو کتاب‌های مختلف در تمام دسته‌بندی‌ها.
@@ -48,15 +48,15 @@ export default function PublicFooter() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2.5 text-white/60 text-sm">
                 <Phone size={15} className="text-crimson shrink-0" />
-                ۰۲۱-۱۲۳۴۵۶۷۸
+                09331283198
               </li>
               <li className="flex items-center gap-2.5 text-white/60 text-sm">
                 <Mail size={15} className="text-crimson shrink-0" />
-                info@library.ir
+                m.amin.arjang@gmail.com
               </li>
               <li className="flex items-center gap-2.5 text-white/60 text-sm">
                 <MapPin size={15} className="text-crimson shrink-0" />
-                تهران، خیابان ولیعصر
+                بندرعباس، بلوارم امام حسین، خیابان لاوان
               </li>
             </ul>
           </div>

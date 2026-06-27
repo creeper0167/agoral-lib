@@ -26,7 +26,7 @@ export default function PublicHeader() {
             <div className="w-9 h-9 bg-crimson rounded-lg flex items-center justify-center shadow-sm">
               <BookOpen size={20} className="text-white" />
             </div>
-            <span className="text-lg font-bold text-navy">کتابخانه</span>
+            <span className="text-lg font-bold text-navy">آگورا</span>
           </Link>
 
           {/* Desktop Nav */}
