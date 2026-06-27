@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Star } from "lucide-react";
 import { BookDto, booksApi } from "@/lib/api";
 
 interface BookCardProps {
@@ -22,8 +22,9 @@ export default function BookCard({ book }: BookCardProps) {
   return (
     <Link href={`/book/${book.id}`} className="group block">
       <div className="card hover:shadow-md hover:border-crimson/20 transition-all duration-200 h-full flex flex-col">
+
         {/* Cover */}
-        <div className="w-full h-44 rounded-lg mb-4 overflow-hidden border border-border bg-parchment flex items-center justify-center">
+        <div className="w-full h-44 rounded-lg mb-4 overflow-hidden border border-border bg-parchment flex items-center justify-center relative">
           {coverUrl ? (
             <img
               src={coverUrl}
@@ -32,6 +33,14 @@ export default function BookCard({ book }: BookCardProps) {
             />
           ) : (
             <BookOpen size={36} className="text-border group-hover:text-crimson/40 transition-colors" />
+          )}
+
+          {/* Rating badge overlay on cover */}
+          {book.averageRating && (
+            <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-navy/80 text-white text-xs font-bold px-2 py-1 rounded-lg backdrop-blur-sm">
+              <Star size={10} className="fill-amber-400 text-amber-400" />
+              {book.averageRating}
+            </div>
           )}
         </div>
 
@@ -43,6 +52,34 @@ export default function BookCard({ book }: BookCardProps) {
           {book.title}
         </h3>
         <p className="text-navy-muted text-sm mb-3">{book.author}</p>
+
+        {/* Star row — only shown when rated */}
+        {book.averageRating ? (
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((s) => {
+                const filled   = book.averageRating! >= s;
+                const halfFill = !filled && book.averageRating! >= s - 0.5;
+                return (
+                  <div key={s} className="relative w-3.5 h-3.5">
+                    <Star size={14} className="absolute fill-border text-border" />
+                    {(filled || halfFill) && (
+                      <div
+                        className="absolute overflow-hidden"
+                        style={{ width: filled ? "100%" : "50%" }}
+                      >
+                        <Star size={14} className="fill-amber-400 text-amber-400" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <span className="text-xs text-navy-muted">({book.totalRatings})</span>
+          </div>
+        ) : (
+          <div className="mb-2 h-4" /> /* spacer so cards align */
+        )}
 
         {/* Availability */}
         <div className="mt-auto flex items-center justify-between">

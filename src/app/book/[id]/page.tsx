@@ -7,6 +7,8 @@ import { BookOpen, ArrowRight, User, Calendar, Hash, CheckCircle, XCircle, Clock
 import PublicHeader from "@/components/layout/PublicHeader";
 import PublicFooter from "@/components/layout/PublicFooter";
 import ReserveModal from "@/components/public/ReserveModal";
+import CommentSection from "@/components/public/CommentSection";
+import BookRatingWidget from "@/components/public/BookRatingWidget";
 import { BookDetailSkeleton } from "@/components/ui/Skeleton";
 import { booksApi, reservationsApi, BookDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -126,12 +128,25 @@ export default function BookDetailPage() {
           </div>
         </div>
 
-        {book.description && (
-          <div className="mt-10 card">
-            <h2 className="section-title mb-4">درباره کتاب</h2>
-            <p className="text-navy-muted leading-relaxed">{book.description}</p>
+        {/* Description + Rating side by side on large screens */}
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {book.description && (
+            <div className="lg:col-span-2 card">
+              <h2 className="section-title mb-4">درباره کتاب</h2>
+              <p className="text-navy-muted leading-relaxed">{book.description}</p>
+            </div>
+          )}
+          <div className={book.description ? "" : "lg:col-span-3"}>
+            <BookRatingWidget
+              bookId={book.id}
+              onRatingChange={(avg, total) =>
+                setBook(b => b ? { ...b, averageRating: avg, totalRatings: total } : b)
+              }
+            />
           </div>
-        )}
+        </div>
+
+        {book && <CommentSection bookId={book.id} />}
       </main>
 
       {showModal && (

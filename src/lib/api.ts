@@ -65,6 +65,8 @@ export interface BookDto {
   totalCopies: number;
   availableCopies: number;
   available: boolean;
+  averageRating?: number; // pre-computed, null if no ratings
+  totalRatings: number;
 }
 
 export interface BooksPagedResponse {
@@ -88,7 +90,6 @@ export interface BookCreatePayload {
 }
 
 export type BookUpdatePayload = BookCreatePayload;
-
 export interface BookQueryParams {
   query?: string;
   categoryId?: number; // filter by FK id
@@ -226,4 +227,65 @@ export const categoriesApi = {
 
 export const adminApi = {
   getDashboard: () => get<DashboardStatsDto>("/admin/dashboard"),
+};
+
+// ─── Comments API ─────────────────────────────────────────────────────────────
+
+export interface CommentDto {
+  id: number;
+  bookId: number;
+  userId: number;
+  userName: string;
+  text: string;
+  rating?: number;
+  parentId?: number; // null = top-level comment
+  createdAt: string;
+  isOwner: boolean;
+  replies: CommentDto[]; // nested replies (one level deep)
+}
+
+export interface BookCommentsResponse {
+  comments: CommentDto[];
+  totalCount: number;
+  totalReplies: number;
+  averageRating?: number;
+}
+
+export const commentsApi = {
+  getByBook: (bookId: number) =>
+    get<BookCommentsResponse>(`/books/${bookId}/comments`),
+
+  create: (
+    bookId: number,
+    data: { text: string; rating?: number; parentId?: number },
+  ) => post<CommentDto>(`/books/${bookId}/comments`, data),
+
+  delete: (commentId: number) =>
+    del<{ message: string }>(`/comments/${commentId}`),
+};
+
+// ─── Book Ratings API ─────────────────────────────────────────────────────────
+
+export interface BookRatingSummaryDto {
+  average?: number; // e.g. 4.3
+  totalRatings: number;
+  distribution: {
+    // count per star: { 1: N, 2: N, ... 5: N }
+    [key: number]: number;
+  };
+  userRating?: number; // 1–5 if current user has rated, undefined otherwise
+}
+
+export const ratingsApi = {
+  /** GET /api/books/{id}/ratings — public, returns summary + userRating if authenticated */
+  getSummary: (bookId: number) =>
+    get<BookRatingSummaryDto>(`/books/${bookId}/ratings`),
+
+  /** POST /api/books/{id}/ratings — upsert user's rating */
+  rate: (bookId: number, value: number) =>
+    post<BookRatingSummaryDto>(`/books/${bookId}/ratings`, { value }),
+
+  /** DELETE /api/books/{id}/ratings — remove user's rating */
+  deleteRating: (bookId: number) =>
+    del<BookRatingSummaryDto>(`/books/${bookId}/ratings`),
 };
