@@ -28,12 +28,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-const get = <T>(path: string) => request<T>(path);
-const post = <T>(path: string, body: unknown) =>
-  request<T>(path, { method: "POST", body: JSON.stringify(body) });
-const put = <T>(path: string, body: unknown) =>
-  request<T>(path, { method: "PUT", body: JSON.stringify(body) });
-const del = <T>(path: string) => request<T>(path, { method: "DELETE" });
+const get  = <T>(path: string)                    => request<T>(path);
+const post = <T>(path: string, body: unknown)     => request<T>(path, { method: "POST", body: JSON.stringify(body) });
+const put  = <T>(path: string, body: unknown)     => request<T>(path, { method: "PUT",  body: JSON.stringify(body) });
+const del  = <T>(path: string)                    => request<T>(path, { method: "DELETE" });
 
 /** Multipart upload — no Content-Type header so browser sets boundary */
 async function upload<T>(path: string, formData: FormData): Promise<T> {
@@ -56,8 +54,8 @@ export interface BookDto {
   id: number;
   title: string;
   author: string;
-  categoryId: number; // FK id
-  category: string; // Category.Name — for display
+  categoryId: number;   // FK id
+  category: string;     // Category.Name — for display
   cover?: string;
   description: string;
   isbn: string;
@@ -65,7 +63,7 @@ export interface BookDto {
   totalCopies: number;
   availableCopies: number;
   available: boolean;
-  averageRating?: number; // pre-computed, null if no ratings
+  averageRating?: number;   // pre-computed, null if no ratings
   totalRatings: number;
 }
 
@@ -80,7 +78,7 @@ export interface BooksPagedResponse {
 export interface BookCreatePayload {
   title: string;
   author: string;
-  categoryId: number; // FK — what the backend expects
+  categoryId: number;   // FK — what the backend expects
   cover?: string;
   description: string;
   isbn: string;
@@ -90,9 +88,10 @@ export interface BookCreatePayload {
 }
 
 export type BookUpdatePayload = BookCreatePayload;
+
 export interface BookQueryParams {
   query?: string;
-  categoryId?: number; // filter by FK id
+  categoryId?: number;   // filter by FK id
   available?: boolean;
   page?: number;
   pageSize?: number;
@@ -142,15 +141,11 @@ export interface AuthResponse {
 // ─── Auth API ─────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: (data: { email: string; password: string }) =>
-    post<AuthResponse>("/auth/login", data),
-  register: (data: { name: string; email: string; password: string }) =>
-    post<AuthResponse>("/auth/register", data),
-  forgotPassword: (email: string) =>
-    post<{ message: string }>("/auth/forgot-password", { email }),
-  resetPassword: (token: string, password: string) =>
-    post<{ message: string }>("/auth/reset-password", { token, password }),
-  me: () => get<AuthResponse["user"]>("/auth/me"),
+  login:           (data: { email: string; password: string })                             => post<AuthResponse>("/auth/login", data),
+  register:        (data: { name: string; email: string; password: string })               => post<AuthResponse>("/auth/register", data),
+  forgotPassword:  (email: string)                                                         => post<{ message: string }>("/auth/forgot-password", { email }),
+  resetPassword:   (token: string, password: string)                                       => post<{ message: string }>("/auth/reset-password", { token, password }),
+  me:              ()                                                                       => get<AuthResponse["user"]>("/auth/me"),
 };
 
 // ─── Books API ────────────────────────────────────────────────────────────────
@@ -158,22 +153,19 @@ export const authApi = {
 export const booksApi = {
   getAll: (params?: BookQueryParams): Promise<BooksPagedResponse> => {
     const qs = new URLSearchParams();
-    if (params?.query) qs.set("query", params.query);
-    if (params?.categoryId !== undefined)
-      qs.set("categoryId", String(params.categoryId));
-    if (params?.available !== undefined)
-      qs.set("available", String(params.available));
-    if (params?.page) qs.set("page", String(params.page));
-    if (params?.pageSize) qs.set("pageSize", String(params.pageSize));
+    if (params?.query)                    qs.set("query",    params.query);
+    if (params?.categoryId !== undefined)  qs.set("categoryId", String(params.categoryId));
+    if (params?.available !== undefined)  qs.set("available", String(params.available));
+    if (params?.page)                     qs.set("page",     String(params.page));
+    if (params?.pageSize)                 qs.set("pageSize", String(params.pageSize));
     const s = qs.toString();
     return get<BooksPagedResponse>(`/books${s ? `?${s}` : ""}`);
   },
 
-  getById: (id: number) => get<BookDto>(`/books/${id}`),
-  create: (data: BookCreatePayload) => post<BookDto>("/books", data),
-  update: (id: number, data: BookUpdatePayload) =>
-    put<BookDto>(`/books/${id}`, data),
-  delete: (id: number) => del<{ message: string }>(`/books/${id}`),
+  getById:      (id: number)                                               => get<BookDto>(`/books/${id}`),
+  create:       (data: BookCreatePayload)              => post<BookDto>("/books", data),
+  update:       (id: number, data: BookUpdatePayload)  => put<BookDto>(`/books/${id}`, data),
+  delete:       (id: number)                                               => del<{ message: string }>(`/books/${id}`),
 
   /** Upload cover image. Returns updated BookDto with new cover URL. */
   uploadCover: (id: number, file: File): Promise<BookDto> => {
@@ -189,10 +181,9 @@ export const booksApi = {
   coverUrl: (cover?: string): string | undefined => {
     if (!cover) return undefined;
     if (cover.startsWith("http")) return cover;
-    const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
     const staticBase = apiUrl.endsWith("/api")
-      ? apiUrl.slice(0, -4) // strip trailing /api
+      ? apiUrl.slice(0, -4)           // strip trailing /api
       : apiUrl.replace(/\/api$/, ""); // safe fallback
     return `${staticBase}${cover}`;
   },
@@ -201,20 +192,18 @@ export const booksApi = {
 // ─── Reservations API ─────────────────────────────────────────────────────────
 
 export const reservationsApi = {
-  getAll: () => get<ReservationDto[]>("/reservations"),
-  getMine: () => get<ReservationDto[]>("/reservations/me"),
-  create: (bookId: number) => post<ReservationDto>("/reservations", { bookId }),
-  updateStatus: (id: number, status: ReservationDto["status"]) =>
-    put<ReservationDto>(`/reservations/${id}/status`, { status }),
+  getAll:        ()                                                      => get<ReservationDto[]>("/reservations"),
+  getMine:       ()                                                      => get<ReservationDto[]>("/reservations/me"),
+  create:        (bookId: number)                                        => post<ReservationDto>("/reservations", { bookId }),
+  updateStatus:  (id: number, status: ReservationDto["status"])          => put<ReservationDto>(`/reservations/${id}/status`, { status }),
 };
 
 // ─── Users API ────────────────────────────────────────────────────────────────
 
 export const usersApi = {
-  getAll: () => get<UserResponseDto[]>("/users"),
-  updateRole: (id: number, role: "user" | "admin") =>
-    put<UserResponseDto>(`/users/${id}/role`, { role }),
-  delete: (id: number) => del<{ message: string }>(`/users/${id}`),
+  getAll:      ()                                        => get<UserResponseDto[]>("/users"),
+  updateRole:  (id: number, role: "user" | "admin")      => put<UserResponseDto>(`/users/${id}/role`, { role }),
+  delete:      (id: number)                              => del<{ message: string }>(`/users/${id}`),
 };
 
 // ─── Categories API ───────────────────────────────────────────────────────────
@@ -238,10 +227,10 @@ export interface CommentDto {
   userName: string;
   text: string;
   rating?: number;
-  parentId?: number; // null = top-level comment
+  parentId?: number;       // null = top-level comment
   createdAt: string;
   isOwner: boolean;
-  replies: CommentDto[]; // nested replies (one level deep)
+  replies: CommentDto[];   // nested replies (one level deep)
 }
 
 export interface BookCommentsResponse {
@@ -255,10 +244,8 @@ export const commentsApi = {
   getByBook: (bookId: number) =>
     get<BookCommentsResponse>(`/books/${bookId}/comments`),
 
-  create: (
-    bookId: number,
-    data: { text: string; rating?: number; parentId?: number },
-  ) => post<CommentDto>(`/books/${bookId}/comments`, data),
+  create: (bookId: number, data: { text: string; rating?: number; parentId?: number }) =>
+    post<CommentDto>(`/books/${bookId}/comments`, data),
 
   delete: (commentId: number) =>
     del<{ message: string }>(`/comments/${commentId}`),
@@ -267,13 +254,12 @@ export const commentsApi = {
 // ─── Book Ratings API ─────────────────────────────────────────────────────────
 
 export interface BookRatingSummaryDto {
-  average?: number; // e.g. 4.3
+  average?: number;         // e.g. 4.3
   totalRatings: number;
-  distribution: {
-    // count per star: { 1: N, 2: N, ... 5: N }
+  distribution: {           // count per star: { 1: N, 2: N, ... 5: N }
     [key: number]: number;
   };
-  userRating?: number; // 1–5 if current user has rated, undefined otherwise
+  userRating?: number;      // 1–5 if current user has rated, undefined otherwise
 }
 
 export const ratingsApi = {
