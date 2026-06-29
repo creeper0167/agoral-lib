@@ -42,7 +42,7 @@ export default function AdminBooksPage() {
   const loadBooks = async () => {
     setLoading(true);
     try {
-      const res = await booksApi.getAll({ query: query || undefined, page, pageSize: 20 });
+      const res = await booksApi.getAll({ searchQuery: query || undefined, page, pageSize: 20 });
       setBooks(res.items);
       setTotal(res.totalCount);
     } catch (e) { console.error(e); }

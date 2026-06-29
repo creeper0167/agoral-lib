@@ -41,7 +41,7 @@ export default function BooksPage() {
     setLoading(true);
 
     booksApi.getAll({
-      query:      debouncedQuery || undefined,
+      searchQuery:      debouncedQuery || undefined,
       categoryId: selectedCategory ?? undefined,
       available:  onlyAvailable || undefined,
       page,

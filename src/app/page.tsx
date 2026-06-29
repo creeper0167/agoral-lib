@@ -29,7 +29,7 @@ export default function HomePage() {
       setSearching(true);
       try {
         const res = await booksApi.getAll({
-          query:      query || undefined,
+          searchQuery:      query || undefined,
           categoryId: categoryId,
           pageSize:   12,
         });
