@@ -153,7 +153,7 @@ export const authApi = {
 export const booksApi = {
   getAll: (params?: BookQueryParams): Promise<BooksPagedResponse> => {
     const qs = new URLSearchParams();
-    if (params?.searchQuery)                    qs.set("query",    params.query);
+    if (params?.searchQuery)                    qs.set("searchQuery",    params.searchQuery);
     if (params?.categoryId !== undefined)  qs.set("categoryId", String(params.categoryId));
     if (params?.available !== undefined)  qs.set("available", String(params.available));
     if (params?.page)                     qs.set("page",     String(params.page));
