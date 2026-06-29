@@ -90,7 +90,7 @@ export interface BookCreatePayload {
 export type BookUpdatePayload = BookCreatePayload;
 
 export interface BookQueryParams {
-  query?: string;
+  searchQuery?: string;
   categoryId?: number;   // filter by FK id
   available?: boolean;
   page?: number;
@@ -153,7 +153,7 @@ export const authApi = {
 export const booksApi = {
   getAll: (params?: BookQueryParams): Promise<BooksPagedResponse> => {
     const qs = new URLSearchParams();
-    if (params?.query)                    qs.set("query",    params.query);
+    if (params?.searchQuery)                    qs.set("query",    params.query);
     if (params?.categoryId !== undefined)  qs.set("categoryId", String(params.categoryId));
     if (params?.available !== undefined)  qs.set("available", String(params.available));
     if (params?.page)                     qs.set("page",     String(params.page));
